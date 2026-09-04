@@ -430,6 +430,7 @@ public:
         return func;
     }
 
+    bool asyncHooksNeedsCleanup = false;
     double INSPECT_MAX_BYTES = 50;
     bool isInsideErrorPrepareStackTraceCallback = false;
 
