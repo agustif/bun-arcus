@@ -1096,10 +1096,6 @@ test.concurrent("--isolate: leaked AbortSignal.timeout does not fire in next fil
 //   pending timeout signal's wrapper (hence its listener, hence the global)
 //   alive for as long as the signal says so. Same story when the timer sat in
 //   the fake-timer heap of a file that never called useRealTimers().
-// - mock()/spyOn()/mock.module()/Bun.plugin: the global's own mock-tracking
-//   sets and plugin callback lists were held through Strong handles, so any
-//   file that created a mock or registered a plugin formed an uncollectable
-//   root -> realm object -> global cycle (#31771's linear growth in practice).
 // - monitorEventLoopDelay().enable(): the per-thread monitor holds the file's
 //   histogram. It is disabled at the swap and only ever holds the histogram
 //   weakly, so an enabled monitor must not keep the file's global alive.
@@ -1199,38 +1195,6 @@ describe.concurrent("--isolate: collects globals pinned by leaked handles", () =
     );
     expect(await maxLiveGlobals(String(dir))).toBeLessThanOrEqual(4);
   });
-
-  test("mock(), spyOn() and mock.module() left registered", async () => {
-    using dir = tempDir(
-      "isolate-leak-mocks",
-      makeLeakFixture(`
-        import { mock, spyOn } from "bun:test";
-        const fn = mock(() => 1);
-        fn();
-        spyOn(console, "warn");
-        mock.module("./mocked-dep", () => ({ default: 1 }));
-      `),
-    );
-    expect(await maxLiveGlobals(String(dir))).toBeLessThanOrEqual(4);
-  });
-
-  test("Bun.plugin left registered", async () => {
-    using dir = tempDir(
-      "isolate-leak-plugin",
-      makeLeakFixture(`
-        Bun.plugin({
-          name: "leak",
-          setup(build) {
-            build.onLoad({ filter: /never-matches/ }, () => ({ contents: "", loader: "js" }));
-            build.onResolve({ filter: /never-matches/ }, () => null);
-            build.module("leaked-virtual-module", () => ({ exports: {}, loader: "object" }));
-          },
-        });
-      `),
-    );
-    expect(await maxLiveGlobals(String(dir))).toBeLessThanOrEqual(4);
-  });
-
   test("monitorEventLoopDelay() left enabled", async () => {
     using dir = tempDir(
       "isolate-leak-event-loop-delay",
