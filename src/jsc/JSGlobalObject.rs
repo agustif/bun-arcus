@@ -696,7 +696,7 @@ impl JSGlobalObject {
 
     pub(crate) fn reload(&self) -> JsResult<()> {
         self.vm().drain_microtasks();
-        self.vm().collect_async(false);
+        self.vm().collect_async();
         crate::cpp::JSC__JSGlobalObject__reload(self)
     }
 
