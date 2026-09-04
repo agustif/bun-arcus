@@ -189,16 +189,12 @@ impl GarbageCollectionController {
         );
     }
 
-    pub(crate) fn perform_gc(&self, idle_full: bool) {
+    pub(crate) fn perform_gc(&self, full: bool) {
         if self.disabled.get() {
             return;
         }
         let vm = VirtualMachine::get().jsc_vm();
-        if idle_full {
-            vm.collect_async_idle();
-        } else {
-            vm.collect_async(false);
-        }
+        vm.collect_async(full);
         self.gc_last_heap_size.set(vm.block_bytes_allocated());
     }
 
